@@ -143,8 +143,50 @@ void Adaptive_noise_gateAudioProcessor::processBlock (juce::AudioBuffer<float>& 
     // This is here to avoid people getting screaming feedback
     // when they first compile a plugin, but obviously you don't need to keep
     // this code if your algorithm always overwrites all the output channels.
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
+    // 
+    //for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+    //    buffer.clear (i, 0, buffer.getNumSamples());
+
+    const bool isBypassed =
+        apvts.getRawParameterValue("bypass")->load();
+
+    if (isBypassed)
+        return;
+
+    const auto numChannels = buffer.getNumChannels();
+    const auto numSamples = buffer.getNumSamples();
+
+    float peakLevel = 0.0f;
+    float rmsLevel = 0.0f;
+
+    for (int channel = 0; channel < numChannels; ++channel)
+    {
+        peakLevel = juce::jmax(
+            peakLevel,
+            buffer.getMagnitude(
+                channel,
+                0,
+                numSamples));
+
+        rmsLevel = juce::jmax(
+            rmsLevel,
+            buffer.getRMSLevel(
+                channel,
+                0,
+                numSamples));
+    }
+
+    const auto peakDb =
+        juce::Decibels::gainToDecibels(peakLevel, -100.0f);
+
+    const auto rmsDb =
+        juce::Decibels::gainToDecibels(rmsLevel, -100.0f);
+
+    DBG("Peak: " + juce::String(peakDb)
+        + " dB, RMS: " + juce::String(rmsDb) + " dB");
+
+
+
 
     // This is the place where you'd normally do the guts of your plugin's
     // audio processing...
@@ -155,6 +197,11 @@ void Adaptive_noise_gateAudioProcessor::processBlock (juce::AudioBuffer<float>& 
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
         auto* channelData = buffer.getWritePointer (channel);
+
+        // Test modyfikowania sygnału (ściszenie)
+        for (int sample{ 0 }; sample < buffer.getNumSamples(); ++sample) {
+            channelData[sample] *= 0.2f;
+        }
 
         // ..do something to the data...
     }
@@ -177,12 +224,27 @@ void Adaptive_noise_gateAudioProcessor::getStateInformation (juce::MemoryBlock& 
     // You should use this method to store your parameters in the memory block.
     // You could do that either as raw data, or use the XML or ValueTree classes
     // as intermediaries to make it easy to save and load complex data.
+    auto state = apvts.copyState();
+
+    std::unique_ptr<juce::XmlElement> xml(
+        state.createXml());
+
+    copyXmlToBinary(*xml, destData);
 }
 
 void Adaptive_noise_gateAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
+    std::unique_ptr<juce::XmlElement> xmlState(
+        getXmlFromBinary(data, sizeInBytes));
+
+    if (xmlState != nullptr &&
+        xmlState->hasTagName(apvts.state.getType()))
+    {
+        apvts.replaceState(
+            juce::ValueTree::fromXml(*xmlState));
+    }
 }
 
 //==============================================================================
