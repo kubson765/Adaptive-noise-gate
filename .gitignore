@@ -1,0 +1,23 @@
+# Wygenerowane katalogi projektów i kompilacji (Projucer)
+/Builds/
+/JuceLibraryCode/
+
+
+# Artefakty wyjściowe i wtyczki
+*.vst3
+*.component
+*.app
+*.exe
+
+# Pliki środowisk IDE i edytorów
+.vs/
+.vscode/
+.idea/
+*.xcodeproj/
+*.xcworkspace/
+*.sln
+*.vcxproj*
+
+# Pliki systemowe
+.DS_Store
+Thumbs.db
