@@ -66,6 +66,21 @@ Adaptive_noise_gateAudioProcessorEditor::Adaptive_noise_gateAudioProcessorEditor
     bypassButton.setButtonText("Bypass");
     addAndMakeVisible(bypassButton);
 
+
+    thresholdSlider.setName("Threshold");
+    attackSlider.setName("Attack");
+    holdSlider.setName("Hold");
+    releaseSlider.setName("Release");
+    rangeSlider.setName("Range");
+    noiseMarginSlider.setName("Noise Margin");
+
+    thresholdSlider.setTooltip("Manual gate threshold in decibels");
+    attackSlider.setTooltip("Time used to open the gate");
+    holdSlider.setTooltip("Time during which the gate stays open");
+    releaseSlider.setTooltip("Time used to close the gate");
+    rangeSlider.setTooltip("Maximum attenuation applied by the gate");
+    noiseMarginSlider.setTooltip("Distance above the estimated noise floor");
+
     setSize(700, 450);
 }
 
@@ -119,19 +134,6 @@ void Adaptive_noise_gateAudioProcessorEditor::resized()
     noiseMarginLabel.setBounds(noiseMarginArea.removeFromTop(25));
     noiseMarginSlider.setBounds(noiseMarginArea);
 
-    thresholdSlider.setName("Threshold");
-    attackSlider.setName("Attack");
-    holdSlider.setName("Hold");
-    releaseSlider.setName("Release");
-    rangeSlider.setName("Range");
-    noiseMarginSlider.setName("Noise Margin");
-
-    thresholdSlider.setTooltip("Manual gate threshold in decibels");
-    attackSlider.setTooltip("Time used to open the gate");
-    holdSlider.setTooltip("Time during which the gate stays open");
-    releaseSlider.setTooltip("Time used to close the gate");
-    rangeSlider.setTooltip("Maximum attenuation applied by the gate");
-    noiseMarginSlider.setTooltip("Distance above the estimated noise floor");
 }
 
 

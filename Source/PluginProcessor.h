@@ -55,10 +55,28 @@ public:
 
     juce::AudioProcessorValueTreeState apvts;
 
+
+
 private:
 
     static juce::AudioProcessorValueTreeState::ParameterLayout
     createParameterLayout();
+
+    double currentSampleRate = 44100.0;     // Double for JUCE type compliance
+    float envelopeDb = -100.0f;
+    float noiseFloorDb = -100.0f;
+    float currentGainDb = 0.0f;
+    float currentGainLinear = 1.0f;
+
+    enum GateState {Closed, Attack, Open, Hold, Release};
+    GateState gateState = GateState::Closed;
+
+    int holdCounterSamples = 0;
+
+    float detectorCoeff = 0.0f;
+    float attackCoeff = 0.0f;
+    float releaseCoeff = 0.0f;
+
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Adaptive_noise_gateAudioProcessor)
 
