@@ -99,18 +99,28 @@ void Adaptive_noise_gateAudioProcessor::prepareToPlay (double sampleRate, int sa
     jassert(sampleRate > 0.0);
     currentSampleRate = sampleRate;
 
-    constexpr float detectorTimeMs = 20.0f;
+    const float blockDuration = static_cast<float>(samplesPerBlock) / static_cast<float>(sampleRate);
 
-    detectorCoeff = 1.0f - std::exp(-1.0f / (detectorTimeMs * 0.001f * static_cast<float>(sampleRate)));
+    constexpr float detectorTimeMs = 20.0f;
+    constexpr float noiseTimeSec = 2.0f;
 
     const float attackMs = apvts.getRawParameterValue("attack")->load();
     const float releaseMs = apvts.getRawParameterValue("release")->load();
+    const float holdMs = apvts.getRawParameterValue("hold")->load();
+    const float holdSamplesLimit = static_cast<int>(holdMs * 0.001 * currentSampleRate);
+
+    detectorCoeff = 1.0f - std::exp(-blockDuration / (detectorTimeMs * 0.001f));
 
     attackCoeff = 1.0f - std::exp(-1.0f / (attackMs * 0.001f * static_cast<float>(sampleRate)));
 
     releaseCoeff = 1.0f - std::exp(-1.0f / (releaseMs * 0.001f * static_cast<float>(sampleRate)));
 
+    noiseCoeff = 1.0f - std::exp(-blockDuration / noiseTimeSec);
+
     DBG("detectorCoeff = " + juce::String(detectorCoeff));
+    DBG("noiseCoeff = " + juce::String(noiseCoeff));
+
+    
 
     // State reset
     envelopeDb = -100.0f;
@@ -156,18 +166,30 @@ bool Adaptive_noise_gateAudioProcessor::isBusesLayoutSupported (const BusesLayou
 
 void Adaptive_noise_gateAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
+    juce::ignoreUnused(midiMessages);
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
+
+
+
     const bool isBypassed =
         apvts.getRawParameterValue("bypass")->load();
+    const float noiseMarginDb = apvts.getRawParameterValue("noiseMargin")->load();
+    const float rangeDb = apvts.getRawParameterValue("range")->load();
 
     if (isBypassed)
         return;
 
     const auto numChannels = buffer.getNumChannels();
     const auto numSamples = buffer.getNumSamples();
+
+    constexpr bool useAdaptiveThreshold = false;
+    const float thresholdDb = apvts.getRawParameterValue("threshold")->load();
+    const float effectiveThreshold = useAdaptiveThreshold
+        ? (noiseFloorDb + noiseMarginDb)
+        : thresholdDb;
 
     float peakLevel = 0.0f;
     float rmsLevel = 0.0f;
@@ -195,9 +217,71 @@ void Adaptive_noise_gateAudioProcessor::processBlock (juce::AudioBuffer<float>& 
 
     envelopeDb += detectorCoeff * (rmsDb - envelopeDb);
 
-    DBG("Peak: " + juce::String(peakDb) + " dB, RMS: " + juce::String(rmsDb) + " dB, Envelope: "
-        + juce::String(envelopeDb) + " dB, Floor: " + juce::String(-100.0f));
+    if (noiseFloorDb > envelopeDb)
+        noiseFloorDb = envelopeDb;
+    else { 
+        noiseFloorDb += noiseCoeff * (envelopeDb - noiseFloorDb); 
+    }
 
+    DBG("Peak: " + juce::String(peakDb) + " dB, RMS: " + juce::String(rmsDb) + " dB, Envelope: "
+        + juce::String(envelopeDb) + " dB, Floor: " + juce::String(noiseFloorDb));
+
+    const float adaptiveThresholdDb = noiseFloorDb + noiseMarginDb;
+    const float openThresholdDb = adaptiveThresholdDb;
+    const float closeThresholdDb = adaptiveThresholdDb - 3.0f; // histereza
+
+    switch (gateState)
+    {
+    case GateState::Closed:
+        targetGainDb = -rangeDb;
+        if (envelopeDb > openThresholdDb)
+            gateState = GateState::Attack;
+        break;
+
+    case GateState::Attack:
+        if (envelopeDb > openThresholdDb) {
+            targetGainDb = 0.0f;
+        }
+        else
+            gateState = GateState::Release;
+
+        if (std::abs(currentGainDb) < 0.1f) {
+            gateState = GateState::Open;
+        }
+        break;
+
+    case GateState::Open:
+        targetGainDb = 0.0f;
+        if (envelopeDb < closeThresholdDb) {
+            holdCounterSamples = 0;
+            gateState = GateState::Hold;
+        }
+        break;
+
+    case GateState::Hold:
+        holdCounterSamples += numSamples;
+        if (holdCounterSamples >= holdSamplesLimit)
+            gateState = GateState::Release;
+        break;
+
+    case GateState::Release:
+        if (envelopeDb > openThresholdDb)
+            gateState = GateState::Attack;
+        else {
+            targetGainDb = -rangeDb;
+        }
+
+        if (std::abs(currentGainDb) < 0.1f)
+            gateState = GateState::Closed;
+        break;
+    }
+
+    if (currentGainDb < targetGainDb)
+        currentGainDb += attackCoeff * (targetGainDb - currentGainDb);
+    else
+        currentGainDb += releaseCoeff * (targetGainDb - currentGainDb);
+
+    currentGainLinear = juce::Decibels::decibelsToGain(currentGainDb);
 
 
 }
@@ -256,48 +340,46 @@ Adaptive_noise_gateAudioProcessor::createParameterLayout()
 
     parameters.push_back(
         std::make_unique<juce::AudioParameterBool>(
-            "bypass",
-            "Bypass",
-            false));
+            juce::ParameterID{ "bypass", 1 }, "Bypass", false));
 
     parameters.push_back(
         std::make_unique<juce::AudioParameterFloat>(
-            "threshold",
+            juce::ParameterID{ "threshold", 2 },
             "Threshold",
             juce::NormalisableRange<float>(-80.0f, 0.0f, 0.1f),
             -45.0f));
 
     parameters.push_back(
         std::make_unique<juce::AudioParameterFloat>(
-            "attack",
+            juce::ParameterID{ "attack", 3 },
             "Attack",
             juce::NormalisableRange<float>(0.1f, 100.0f, 0.1f),
             5.0f));
 
     parameters.push_back(
         std::make_unique<juce::AudioParameterFloat>(
-            "hold",
+            juce::ParameterID{ "hold", 4 },
             "Hold",
             juce::NormalisableRange<float>(0.0f, 500.0f, 1.0f),
             100.0f));
 
     parameters.push_back(
         std::make_unique<juce::AudioParameterFloat>(
-            "release",
+            juce::ParameterID{ "release", 5 },
             "Release",
             juce::NormalisableRange<float>(10.0f, 2000.0f, 1.0f),
             180.0f));
 
     parameters.push_back(
         std::make_unique<juce::AudioParameterFloat>(
-            "range",
+            juce::ParameterID{ "range", 6 },
             "Range",
             juce::NormalisableRange<float>(0.0f, 80.0f, 0.1f),
             35.0f));
 
     parameters.push_back(
         std::make_unique<juce::AudioParameterFloat>(
-            "noiseMargin",
+            juce::ParameterID{ "noiseMargin", 7 },
             "Noise Margin",
             juce::NormalisableRange<float>(1.0f, 20.0f, 0.1f),
             8.0f));
