@@ -107,7 +107,7 @@ void Adaptive_noise_gateAudioProcessor::prepareToPlay (double sampleRate, int sa
     const float attackMs = apvts.getRawParameterValue("attack")->load();
     const float releaseMs = apvts.getRawParameterValue("release")->load();
     const float holdMs = apvts.getRawParameterValue("hold")->load();
-    const float holdSamplesLimit = static_cast<int>(holdMs * 0.001 * currentSampleRate);
+    holdSamplesLimit = static_cast<int>(holdMs * 0.001f * currentSampleRate);
 
     detectorCoeff = 1.0f - std::exp(-blockDuration / (detectorTimeMs * 0.001f));
 
@@ -226,9 +226,8 @@ void Adaptive_noise_gateAudioProcessor::processBlock (juce::AudioBuffer<float>& 
     DBG("Peak: " + juce::String(peakDb) + " dB, RMS: " + juce::String(rmsDb) + " dB, Envelope: "
         + juce::String(envelopeDb) + " dB, Floor: " + juce::String(noiseFloorDb));
 
-    const float adaptiveThresholdDb = noiseFloorDb + noiseMarginDb;
-    const float openThresholdDb = adaptiveThresholdDb;
-    const float closeThresholdDb = adaptiveThresholdDb - 3.0f; // histereza
+    const float openThresholdDb = effectiveThreshold;
+    const float closeThresholdDb = effectiveThreshold - 3.0f; // histereza
 
     switch (gateState)
     {
@@ -276,12 +275,25 @@ void Adaptive_noise_gateAudioProcessor::processBlock (juce::AudioBuffer<float>& 
         break;
     }
 
-    if (currentGainDb < targetGainDb)
-        currentGainDb += attackCoeff * (targetGainDb - currentGainDb);
-    else
-        currentGainDb += releaseCoeff * (targetGainDb - currentGainDb);
 
-    currentGainLinear = juce::Decibels::decibelsToGain(currentGainDb);
+    // Applying the gain
+    for (int channel{ 0 }; channel < numChannels; ++channel) {
+
+        auto* channelData = buffer.getWritePointer(channel);
+
+        for (int sample{ 0 }; sample < numSamples; ++sample) {
+
+            if (currentGainDb < targetGainDb)
+                currentGainDb += attackCoeff * (targetGainDb - currentGainDb);
+            else
+                currentGainDb += releaseCoeff * (targetGainDb - currentGainDb);
+
+            currentGainLinear = juce::Decibels::decibelsToGain(currentGainDb);
+
+
+            channelData[sample] *= currentGainLinear;
+        }
+    }
 
 
 }
