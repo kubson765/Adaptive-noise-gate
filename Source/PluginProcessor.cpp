@@ -225,7 +225,7 @@ void Adaptive_noise_gateAudioProcessor::processBlock (juce::AudioBuffer<float>& 
     }
 
     DBG("Peak: " + juce::String(peakDb) + " dB, RMS: " + juce::String(rmsDb) + " dB, Envelope: "
-        + juce::String(envelopeDb) + " dB, Floor: " + juce::String(noiseFloorDb));
+        + juce::String(envelopeDb) + " dB, Floor: " + juce::String(noiseFloorDb) + "dB, Effective THRESHOLD: " + juce::String(effectiveThreshold));
 
     const float openThresholdDb = effectiveThreshold;
     constexpr float hysteresisDb = 3.0f;
@@ -261,6 +261,12 @@ void Adaptive_noise_gateAudioProcessor::processBlock (juce::AudioBuffer<float>& 
         break;
 
     case GateState::Hold:
+        if (envelopeDb > openThresholdDb) {
+            gateState = GateState::Open;
+            targetGainDb = 0.0f;
+            break;
+        }
+
         holdCounterSamples += numSamples;
         if (holdCounterSamples >= holdSamplesLimit)
             gateState = GateState::Release;
