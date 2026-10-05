@@ -46,7 +46,13 @@ Adaptive_noise_gateAudioProcessorEditor::Adaptive_noise_gateAudioProcessorEditor
     bypassAttachment(
         p.apvts,
         "bypass",
-        bypassButton)
+        bypassButton),
+
+    useAdaptiveAttachment(
+        p.apvts,
+        "useAdaptive",
+        useAdaptiveButton)
+
 {
     setupSlider(thresholdSlider);
     setupSlider(attackSlider);
@@ -65,6 +71,9 @@ Adaptive_noise_gateAudioProcessorEditor::Adaptive_noise_gateAudioProcessorEditor
 
     bypassButton.setButtonText("Bypass");
     addAndMakeVisible(bypassButton);
+
+    useAdaptiveButton.setButtonText("Adaptive Threshold");
+    addAndMakeVisible(useAdaptiveButton);
 
 
     thresholdSlider.setName("Threshold");
@@ -104,6 +113,7 @@ void Adaptive_noise_gateAudioProcessorEditor::resized()
 
     auto topArea = area.removeFromTop(50);
     bypassButton.setBounds(topArea.removeFromRight(100));
+    useAdaptiveButton.setBounds(topArea.removeFromRight(100));
 
     auto sliderArea = area.reduced(10);
 

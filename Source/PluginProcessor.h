@@ -68,6 +68,7 @@ private:
     float currentGainDb = 0.0f;
     float currentGainLinear = 1.0f;
     float targetGainDb = 0.0f;
+    float targetGainLinear = 1.0f;
 
     enum class GateState {Closed, Attack, Open, Hold, Release};
     GateState gateState = GateState::Closed;

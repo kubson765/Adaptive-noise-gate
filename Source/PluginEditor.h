@@ -47,6 +47,7 @@ private:
 
 
     juce::ToggleButton bypassButton;
+    juce::ToggleButton useAdaptiveButton;
 
     juce::AudioProcessorValueTreeState::SliderAttachment
         thresholdAttachment;
@@ -68,6 +69,9 @@ private:
 
     juce::AudioProcessorValueTreeState::ButtonAttachment
         bypassAttachment;
+    
+    juce::AudioProcessorValueTreeState::ButtonAttachment
+        useAdaptiveAttachment;
 
     void setupSlider(juce::Slider& slider);
     void setupLabel(juce::Label& label, const juce::String& text);
