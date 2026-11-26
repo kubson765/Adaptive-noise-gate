@@ -303,7 +303,10 @@ void Adaptive_noise_gateAudioProcessor::processBlock (juce::AudioBuffer<float>& 
             channelPtrs[channel][sample] *= currentGainLinear;
     }
 
-
+    atomicEnvelopeDb.store(envelopeDb, std::memory_order_relaxed);
+    atomicNoiseFloorDb.store(noiseFloorDb, std::memory_order_relaxed);
+    atomicThresholdDb.store(effectiveThreshold, std::memory_order_relaxed);
+    atomicGateOpen.store(gateState == GateState::Open || gateState == GateState::Attack || gateState == GateState::Hold, std::memory_order_relaxed);
 }
 
 //==============================================================================

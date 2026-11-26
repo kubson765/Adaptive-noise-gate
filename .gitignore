@@ -21,3 +21,6 @@
 # Pliki systemowe
 .DS_Store
 Thumbs.db
+
+# devcontainer config
+.devcontainer/
