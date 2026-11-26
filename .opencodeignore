@@ -1,0 +1,8 @@
+build/
+Builds/
+JUCE/
+_deps/
+*.vst3/
+*.a
+*.o
+.git/
