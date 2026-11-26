@@ -374,42 +374,48 @@ Adaptive_noise_gateAudioProcessor::createParameterLayout()
             juce::ParameterID{ "threshold", 3 },
             "Threshold",
             juce::NormalisableRange<float>(-80.0f, 0.0f, 0.1f),
-            -45.0f));
+            -45.0f,
+            " dB"));
 
     parameters.push_back(
         std::make_unique<juce::AudioParameterFloat>(
             juce::ParameterID{ "attack", 4 },
             "Attack",
             juce::NormalisableRange<float>(0.1f, 100.0f, 0.1f),
-            5.0f));
+            5.0f,
+            " ms"));
 
     parameters.push_back(
         std::make_unique<juce::AudioParameterFloat>(
             juce::ParameterID{ "hold", 5 },
             "Hold",
             juce::NormalisableRange<float>(0.0f, 500.0f, 1.0f),
-            100.0f));
+            100.0f,
+            " ms"));
 
     parameters.push_back(
         std::make_unique<juce::AudioParameterFloat>(
             juce::ParameterID{ "release", 6 },
             "Release",
             juce::NormalisableRange<float>(10.0f, 2000.0f, 1.0f),
-            180.0f));
+            180.0f,
+            " ms"));
 
     parameters.push_back(
         std::make_unique<juce::AudioParameterFloat>(
             juce::ParameterID{ "range", 7 },
             "Range",
             juce::NormalisableRange<float>(0.0f, 80.0f, 0.1f),
-            35.0f));
+            35.0f,
+            " dB"));
 
     parameters.push_back(
         std::make_unique<juce::AudioParameterFloat>(
             juce::ParameterID{ "noiseMargin", 8 },
             "Noise Margin",
             juce::NormalisableRange<float>(1.0f, 20.0f, 0.1f),
-            8.0f));
+            8.0f,
+            " dB"));
 
     return { parameters.begin(), parameters.end() };
 }

@@ -85,6 +85,13 @@ Adaptive_noise_gateAudioProcessorEditor::Adaptive_noise_gateAudioProcessorEditor
     rangeSlider.setName("Range");
     noiseMarginSlider.setName("Noise Margin");
 
+    thresholdSlider.setTextValueSuffix(" dB");
+    attackSlider.setTextValueSuffix(" ms");
+    holdSlider.setTextValueSuffix(" ms");
+    releaseSlider.setTextValueSuffix(" ms");
+    rangeSlider.setTextValueSuffix(" dB");
+    noiseMarginSlider.setTextValueSuffix(" dB");
+
     thresholdSlider.setTooltip("Manual gate threshold in decibels");
     attackSlider.setTooltip("Time used to open the gate");
     holdSlider.setTooltip("Time during which the gate stays open");
