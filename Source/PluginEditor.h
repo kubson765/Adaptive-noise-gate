@@ -14,7 +14,7 @@
 //==============================================================================
 /**
 */
-class Adaptive_noise_gateAudioProcessorEditor  : public juce::AudioProcessorEditor
+class Adaptive_noise_gateAudioProcessorEditor  : public juce::AudioProcessorEditor, private juce::Timer
 {
 public:
     Adaptive_noise_gateAudioProcessorEditor (Adaptive_noise_gateAudioProcessor&);
@@ -23,6 +23,9 @@ public:
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
+
+    //==============================================================================
+    void timerCallback() override;
 
 private:
     // This reference is provided as a quick way for your editor to
@@ -45,10 +48,14 @@ private:
     juce::Label rangeLabel;
     juce::Label noiseMarginLabel;
 
-
+    // Toggle buttons
     juce::ToggleButton bypassButton;
     juce::ToggleButton useAdaptiveButton;
 
+    // Bounds for plugin visualisation window (threshold over time)
+    juce::Rectangle<int> visualizerBounds;
+
+    // Attachments - input updates actual values during runtime
     juce::AudioProcessorValueTreeState::SliderAttachment
         thresholdAttachment;
 
@@ -73,8 +80,15 @@ private:
     juce::AudioProcessorValueTreeState::ButtonAttachment
         useAdaptiveAttachment;
 
+    // History buffer for scrolling waveform (wykres kroczący)
+    static constexpr int historySize = 200;
+    std::array<float, historySize> envelopeHistory;
+    std::array<float, historySize> thresholdHistory;
+    int writeIndex = 0;
+
     void setupSlider(juce::Slider& slider);
     void setupLabel(juce::Label& label, const juce::String& text);
+
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Adaptive_noise_gateAudioProcessorEditor)
 };

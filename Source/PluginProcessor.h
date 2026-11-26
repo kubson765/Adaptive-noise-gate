@@ -53,8 +53,14 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    //==============================================================================
     juce::AudioProcessorValueTreeState apvts;
 
+    //==============================================================================
+    float getEnvelopeDb() const noexcept { return atomicEnvelopeDb.load(std::memory_order_relaxed); }
+    float getNoiseFloorDb() const noexcept { return atomicNoiseFloorDb.load(std::memory_order_relaxed); }
+    float getThresholdDb() const noexcept { return atomicThresholdDb.load(std::memory_order_relaxed); }
+    float isGateOpen() const noexcept { return atomicGateOpen.load(std::memory_order_relaxed); }
 
 
 private:
@@ -80,6 +86,12 @@ private:
     float attackCoeff = 0.0f;
     float releaseCoeff = 0.0f;
     float noiseCoeff = 0.0f;
+
+    // ===== Atomic variables for UI visualization synchronization and safety =====
+    std::atomic<float> atomicEnvelopeDb{ -100.0f };
+    std::atomic<float> atomicNoiseFloorDb{ -100.0f };
+    std::atomic<float> atomicThresholdDb{ -45.0f };
+    std::atomic<bool> atomicGateOpen{ false };
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Adaptive_noise_gateAudioProcessor)
